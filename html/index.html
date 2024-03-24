@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>three.js webgl - sprites</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+</head>
+
+<body>
+	<!-- <div id="info">
+        <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - sprites
+    </div> -->
+
+	<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+	</script>
+	<script src="js/gsap.min.js"></script>
+	<script type="module">
+
+		import * as THREE from 'three';
+		import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+		import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+		import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+		import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+		import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+		import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+		import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+
+		let camera, scene, renderer;
+		let cameraOrtho, sceneOrtho;
+
+		let spriteBL, spriteBR, spriteC;
+		let mtObj1, mtObj2, mtObj3, mtObj4;
+
+		let composer, outlinePass, effectFXAA, raycaster, mouse;
+		let selectedObjects = [];
+
+		let composerO, outlinePassO, effectFXAAO, raycasterO;
+		let selectedObjectsO = [];
+
+		let meshSelected, outlineMesh;
+
+
+		//let mapC;
+
+		//let group;
+
+		let controls;
+
+		//let cubeDemo;
+
+		init();
+		animate();
+
+		function init() {
+
+			const width = window.innerWidth;
+			const height = window.innerHeight;
+
+			//camera = new THREE.PerspectiveCamera( 60, width / height, 1, 2100 );
+			//camera.position.z = 1500;
+			camera = new THREE.PerspectiveCamera(40, width / height, 1, 100);
+			//camera.position.set( 5, 2, 8 );
+			camera.position.z = 6;
+			console.log(camera.position);
+			//cameraOrtho = new THREE.OrthographicCamera(- width / 2, width / 2, height / 2, - height / 2, 1, 10);
+			cameraOrtho = new THREE.PerspectiveCamera(40, width / height, 1, 100)
+			//cameraOrtho.position.z = 10;
+			cameraOrtho.position.z = 6;
+
+			scene = new THREE.Scene();
+			//scene.fog = new THREE.Fog( 0x000000, 1, 100 );
+
+			sceneOrtho = new THREE.Scene();
+
+			// create sprites
+			//const amount = 200;
+			//const radius = 500;
+
+			// Load room 3d
+			const loader = new GLTFLoader();
+			loader.load('models/gltf/coffee.glb', function (gltf) {
+				const model = gltf.scene;
+				// model.traverse((o) => {
+				// 	if (o.isMesh) {
+				// 		o.receiveShadow = true;
+				// 		o.castShadow = true;
+				// 	}
+				// });
+				model.rotation.set(0.1, -2, 0);
+				const modelSize = 0.5;
+				model.scale.set(modelSize, modelSize, modelSize);
+				scene.add(model);
+				//animate();
+
+			}, undefined, function (e) {
+				console.error(e);
+			});
+
+			// Load Sprites
+			const textureLoader = new THREE.TextureLoader();
+			createMaterialMesh();
+
+			// Renderer
+			renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.autoClear = false; // To allow render overlay on top of sprited sphere
+
+			const pmremGenerator = new THREE.PMREMGenerator(renderer);
+			scene.background = new THREE.Color(0xbfe3dd);
+			scene.environment = pmremGenerator.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+			document.body.appendChild(renderer.domElement);
+
+			// Set orbitControls for camera
+			controls = new OrbitControls(camera, renderer.domElement);
+			controls.target.set(0, 1, 0);
+			controls.enablePan = false;
+			controls.enableDamping = true;
+			controls.maxPolarAngle = Math.PI / 2;
+			controls.update();
+
+
+			// Postprocessing setting for camera
+			raycaster = new THREE.Raycaster();
+			raycasterO = new THREE.Raycaster(); // for Orthor
+
+			mouse = new THREE.Vector2();
+			composer = new EffectComposer(renderer);
+			const renderPass = new RenderPass(scene, camera);
+			composer.addPass(renderPass);
+			outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+			composer.addPass(outlinePass);
+
+			// Postprocessing setting for cameraOrtho
+			outlinePassO = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), sceneOrtho, cameraOrtho);
+			composer.addPass(outlinePassO); // for Orthor
+
+			textureLoader.load('textures/tri_pattern.jpg', function (texture) {
+				outlinePass.patternTexture = texture;
+				outlinePassO.patternTexture = texture; // for Orthor
+				texture.wrapS = THREE.RepeatWrapping;
+				texture.wrapT = THREE.RepeatWrapping;
+			});
+
+			const outputPass = new OutputPass();
+			composer.addPass(outputPass);
+
+
+			effectFXAA = new ShaderPass(FXAAShader);
+			effectFXAA.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / window.innerHeight);
+			composer.addPass(effectFXAA);
+
+
+			// Events
+			window.addEventListener('resize', onWindowResize);
+			renderer.domElement.style.touchAction = 'none';
+			renderer.domElement.addEventListener('pointermove', onPointerMove);
+			renderer.domElement.addEventListener('click', onClick);
+
+		}
+
+		function createMaterialMesh(texture) {
+			const geometry = new THREE.DodecahedronGeometry(0.38, 50);
+
+			const textureLoader = new THREE.TextureLoader();
+
+			const map1 = textureLoader.load('textures/hardwood2_diffuse.jpg');
+			const map2 = textureLoader.load('textures/wood2.jpg');
+			const map3 = textureLoader.load('textures/wood3.jpg');
+			const map4 = textureLoader.load('textures/wood4.jpg');
+
+			const material1 = new THREE.MeshBasicMaterial({ map: map1 });
+			const material2 = new THREE.MeshBasicMaterial({ map: map2 });
+			const material3 = new THREE.MeshBasicMaterial({ map: map3 });
+			const material4 = new THREE.MeshBasicMaterial({ map: map4 });
+
+			mtObj1 = new THREE.Mesh(geometry, material1);
+			mtObj1.position.set(0.66, -1.5, 0);
+			sceneOrtho.add(mtObj1);
+
+			mtObj2 = new THREE.Mesh(geometry, material2);
+			mtObj2.position.set(-0.66, -1.5, 0);
+			sceneOrtho.add(mtObj2);
+
+			mtObj3 = new THREE.Mesh(geometry, material3);
+			mtObj3.position.set(2.0, -1.5, 0);
+			sceneOrtho.add(mtObj3);
+
+			mtObj4 = new THREE.Mesh(geometry, material4);
+			mtObj4.position.set(-2.0, -1.5, 0);
+			sceneOrtho.add(mtObj4);
+
+			UpdateMaterialMesh();
+		}
+
+		function updateMaterialMesh(meshName) {
+			let path1, path2, path3, path4;
+			let map1, map2, map3, map4;
+			const textureLoader = new THREE.TextureLoader();
+			if (meshName === 'Cube027') { // Sofa
+				path1 = 'textures/sofa1.jpg';
+				path2 = 'textures/sofa2.jpg';
+				path3 = 'textures/sofa3.jpg';
+				path4 = 'textures/sofa4.jpg';
+			} else if (meshName === 'Cube027_1' || meshName === 'Cube027_2') { // Goi
+				path1 = 'textures/goi1.jpg';
+				path2 = 'textures/goi2.jpg';
+				path3 = 'textures/goi3.jpg';
+				path4 = 'textures/goi4.jpg';
+			} else if (meshName === 'carpet_hair002') { // Thảm
+				path1 = 'textures/carpet1.jpg';
+				path2 = 'textures/carpet2.jpg';
+				path3 = 'textures/carpet3.jpg';
+				path4 = 'textures/carpet4.jpg';
+			} else if (meshName === 'Cube') { // Ban ben phai
+				path1 = 'textures/goi1.jpg';
+				path2 = 'textures/goi2.jpg';
+				path3 = 'textures/goi3.jpg';
+				path4 = 'textures/goi4.jpg';
+			} else if (meshName === 'Cube001') { // Ban ben trái
+				path1 = 'textures/goi1.jpg';
+				path2 = 'textures/goi2.jpg';
+				path3 = 'textures/goi3.jpg';
+				path4 = 'textures/goi4.jpg';
+			} else if (meshName === 'Plane') { // Sàn nhà
+				path1 = 'textures/hardwood2_diffuse.jpg';
+				path2 = 'textures/wood2.jpg';
+				path3 = 'textures/wood3.jpg';
+				path4 = 'textures/wood4.jpg';
+
+			} else if (meshName === 'Cube002_1' || meshName === 'Cube002_2') { // Tuong da
+
+			}
+
+			if (!mtObj1.material.map.source.data['src'].includes(path1)) {
+				map1 = textureLoader.load(path1);
+				map2 = textureLoader.load(path2);
+				map3 = textureLoader.load(path3);
+				map4 = textureLoader.load(path4);
+				mtObj1.material = new THREE.MeshBasicMaterial({ map: map1 });
+				mtObj2.material = new THREE.MeshBasicMaterial({ map: map2 });
+				mtObj3.material = new THREE.MeshBasicMaterial({ map: map3 });
+				mtObj4.material = new THREE.MeshBasicMaterial({ map: map4 });
+			}
+
+		}
+
+		function UpdateMaterialMesh() {
+			//const width = window.innerWidth / 2;
+			//const height = window.innerHeight / 2;
+			//materialBL.position.set(-width, -height, 1);
+		}
+
+		function onWindowResize() {
+
+			const width = window.innerWidth;
+			const height = window.innerHeight;
+
+			camera.aspect = width / height;
+			camera.updateProjectionMatrix();
+
+			//cameraOrtho.left = - width / 2;
+			//cameraOrtho.right = width / 2;
+			//cameraOrtho.top = height / 2;
+			//cameraOrtho.bottom = - height / 2;
+
+			cameraOrtho.aspect = width / height;
+			cameraOrtho.updateProjectionMatrix();
+
+			//updateHUDSprites();
+			UpdateMaterialMesh();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+		}
+
+		function onPointerMove(event) {
+			if (event.isPrimary === false) return;
+			mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+			mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+			checkIntersection(); // Main Screen
+			checkIntersectionO(); // Orthor Screen
+		}
+
+		function addSelectedObject(object) {
+			selectedObjects = [];
+			selectedObjects.push(object);
+		}
+
+		function checkIntersection() {
+			raycaster.setFromCamera(mouse, camera);
+			const intersects = raycaster.intersectObject(scene, true);
+			if (intersects.length > 0) {
+				const selectedObject = intersects[0].object;
+				addSelectedObject(selectedObject);
+				outlinePass.selectedObjects = selectedObjects;
+				//document.body.style.cursor = "pointer";
+			} else {
+				outlinePass.selectedObjects = [];
+				//document.body.style.cursor = "default";
+			}
+		}
+
+		function checkIntersectionO() {
+			raycasterO.setFromCamera(mouse, cameraOrtho);
+			const intersects = raycasterO.intersectObject(sceneOrtho, true);
+			if (intersects.length > 0) {
+				const selectedObject = intersects[0].object;
+				addSelectedObject(selectedObject);
+				outlinePassO.selectedObjects = selectedObjects;
+				document.body.style.cursor = "pointer";
+			} else {
+				outlinePassO.selectedObjects = [];
+				document.body.style.cursor = "default";
+			}
+
+		}
+
+		//Zoom
+		const zoomInTimeline = (x, y, z, zoomOutFactor = 0) => {
+			let tl = gsap
+				.timeline({
+					defaults: {
+						duration: 1.5,
+						ease: "expo.out",
+						onUpdate: () => {
+							controls.enabled = false;
+						},
+						onComplete: () => {
+							//controls.enabled = true;
+						}
+					}
+				})
+				.to(controls.target, { x, y, z })
+				.to(camera.position, { x: 4, y: 2, z: 2 }, 0)
+			//.to(camera.position, { x: 4, y: 2, z: 2 }, 0)
+
+			// .to(group.rotation, { x: 0, y: 0 }, 0);
+		};
+
+		function onClick() {
+			event.preventDefault();
+			let isMaterial = false;
+			mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+			mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+			raycasterO.setFromCamera(mouse, cameraOrtho);
+			let intersects = raycasterO.intersectObject(sceneOrtho, true);
+
+			if (intersects.length > 0) {
+				isMaterial = true;
+				const object = intersects[0].object;
+
+				if (outlineMesh) {
+					sceneOrtho.remove(outlineMesh);
+					outlineMesh = null;
+				}
+
+				// Reset
+				const outlineGeometry = object.geometry;
+				const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide });
+				outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+				outlineMesh.position.set(object.position.x, object.position.y, object.position.z);
+				outlineMesh.scale.multiplyScalar(1.05);
+				sceneOrtho.add(outlineMesh);
+
+
+				// Update material
+				if (meshSelected) {
+					const textture = object.material.map;
+					meshSelected.material = new THREE.MeshBasicMaterial({ map: textture });
+				}
+
+			} else {
+				isMaterial = false;
+			}
+
+			raycaster.setFromCamera(mouse, camera);
+			intersects = raycaster.intersectObject(scene, true);
+
+			if (intersects.length > 0) {
+				if (!isMaterial) {
+					const object = intersects[0].object;
+					if (object.name !== 'Cube002_1' && object.name !== 'Cube002_2') {
+						meshSelected = intersects[0].object;
+						updateMaterialMesh(meshSelected.name);
+					}
+
+				}
+
+			}
+
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			controls.update();
+
+			renderer.clear();
+			composer.render();
+			renderer.clearDepth();
+			renderer.render(sceneOrtho, cameraOrtho);
+
+			//const time = Date.now() / 1000;
+			mtObj1.rotation.y += 0.01;
+			mtObj2.rotation.y += 0.01;
+			mtObj3.rotation.y += 0.01;
+			mtObj4.rotation.y += 0.01;
+
+		}
+
+	</script>
+</body>
+
+</html>
+
+<!-- https://showroom.littleworkshop.fr/ -->
