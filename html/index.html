@@ -67,42 +67,25 @@
 			const width = window.innerWidth;
 			const height = window.innerHeight;
 
-			//camera = new THREE.PerspectiveCamera( 60, width / height, 1, 2100 );
-			//camera.position.z = 1500;
 			camera = new THREE.PerspectiveCamera(40, width / height, 1, 100);
-			//camera.position.set( 5, 2, 8 );
-			camera.position.z = 6;
+			camera.position.z = 1.8;
 			console.log(camera.position);
-			//cameraOrtho = new THREE.OrthographicCamera(- width / 2, width / 2, height / 2, - height / 2, 1, 10);
 			cameraOrtho = new THREE.PerspectiveCamera(40, width / height, 1, 100)
-			//cameraOrtho.position.z = 10;
-			cameraOrtho.position.z = 6;
+			cameraOrtho.position.z = 1.8;
 
 			scene = new THREE.Scene();
-			//scene.fog = new THREE.Fog( 0x000000, 1, 100 );
 
 			sceneOrtho = new THREE.Scene();
 
-			// create sprites
-			//const amount = 200;
-			//const radius = 500;
-
 			// Load room 3d
 			const loader = new GLTFLoader();
-			loader.load('models/gltf/coffee.glb', function (gltf) {
+			loader.load('models/gltf/bep.glb', function (gltf) {
 				const model = gltf.scene;
-				// model.traverse((o) => {
-				// 	if (o.isMesh) {
-				// 		o.receiveShadow = true;
-				// 		o.castShadow = true;
-				// 	}
-				// });
-				model.rotation.set(0.1, -2, 0);
-				const modelSize = 0.5;
+				model.rotation.set(0, 0.75, 0);
+				model.position.set(0, 0.5, 0);
+				const modelSize = 0.94;
 				model.scale.set(modelSize, modelSize, modelSize);
 				scene.add(model);
-				//animate();
-
 			}, undefined, function (e) {
 				console.error(e);
 			});
@@ -125,7 +108,7 @@
 
 			// Set orbitControls for camera
 			controls = new OrbitControls(camera, renderer.domElement);
-			controls.target.set(0, 1, 0);
+			controls.target.set(0, 1.2, 0);
 			controls.enablePan = false;
 			controls.enableDamping = true;
 			controls.maxPolarAngle = Math.PI / 2;
@@ -172,88 +155,66 @@
 		}
 
 		function createMaterialMesh(texture) {
-			const geometry = new THREE.DodecahedronGeometry(0.38, 50);
+			const geometry = new THREE.DodecahedronGeometry(0.1, 50);
 
 			const textureLoader = new THREE.TextureLoader();
 
-			const map1 = textureLoader.load('textures/hardwood2_diffuse.jpg');
-			const map2 = textureLoader.load('textures/wood2.jpg');
-			const map3 = textureLoader.load('textures/wood3.jpg');
-			const map4 = textureLoader.load('textures/wood4.jpg');
+			const map1 = textureLoader.load('textures/floor-1.jpg');
+			const map2 = textureLoader.load('textures/floor-2.jpg');
+			const map3 = textureLoader.load('textures/floor-3.jpg');
+			//const map4 = textureLoader.load('textures/wood4.jpg');
 
 			const material1 = new THREE.MeshBasicMaterial({ map: map1 });
 			const material2 = new THREE.MeshBasicMaterial({ map: map2 });
 			const material3 = new THREE.MeshBasicMaterial({ map: map3 });
-			const material4 = new THREE.MeshBasicMaterial({ map: map4 });
+			//const material4 = new THREE.MeshBasicMaterial({ map: map4 });
 
 			mtObj1 = new THREE.Mesh(geometry, material1);
-			mtObj1.position.set(0.66, -1.5, 0);
+			mtObj1.position.set(0, -0.5, 0);
 			sceneOrtho.add(mtObj1);
 
 			mtObj2 = new THREE.Mesh(geometry, material2);
-			mtObj2.position.set(-0.66, -1.5, 0);
+			mtObj2.position.set(-0.25, -0.5, 0);
 			sceneOrtho.add(mtObj2);
 
 			mtObj3 = new THREE.Mesh(geometry, material3);
-			mtObj3.position.set(2.0, -1.5, 0);
+			mtObj3.position.set(0.25, -0.5, 0);
 			sceneOrtho.add(mtObj3);
 
-			mtObj4 = new THREE.Mesh(geometry, material4);
-			mtObj4.position.set(-2.0, -1.5, 0);
-			sceneOrtho.add(mtObj4);
+			//mtObj4 = new THREE.Mesh(geometry, material4);
+			//mtObj4.position.set(-0.45, -0.5, 0);
+			//sceneOrtho.add(mtObj4);
 
 			UpdateMaterialMesh();
 		}
 
 		function updateMaterialMesh(meshName) {
+			console.log(meshName);
 			let path1, path2, path3, path4;
 			let map1, map2, map3, map4;
 			const textureLoader = new THREE.TextureLoader();
-			if (meshName === 'Cube027') { // Sofa
-				path1 = 'textures/sofa1.jpg';
-				path2 = 'textures/sofa2.jpg';
-				path3 = 'textures/sofa3.jpg';
-				path4 = 'textures/sofa4.jpg';
-			} else if (meshName === 'Cube027_1' || meshName === 'Cube027_2') { // Goi
-				path1 = 'textures/goi1.jpg';
-				path2 = 'textures/goi2.jpg';
-				path3 = 'textures/goi3.jpg';
-				path4 = 'textures/goi4.jpg';
-			} else if (meshName === 'carpet_hair002') { // Thảm
-				path1 = 'textures/carpet1.jpg';
-				path2 = 'textures/carpet2.jpg';
-				path3 = 'textures/carpet3.jpg';
-				path4 = 'textures/carpet4.jpg';
-			} else if (meshName === 'Cube') { // Ban ben phai
-				path1 = 'textures/goi1.jpg';
-				path2 = 'textures/goi2.jpg';
-				path3 = 'textures/goi3.jpg';
-				path4 = 'textures/goi4.jpg';
-			} else if (meshName === 'Cube001') { // Ban ben trái
-				path1 = 'textures/goi1.jpg';
-				path2 = 'textures/goi2.jpg';
-				path3 = 'textures/goi3.jpg';
-				path4 = 'textures/goi4.jpg';
-			} else if (meshName === 'Plane') { // Sàn nhà
-				path1 = 'textures/hardwood2_diffuse.jpg';
-				path2 = 'textures/wood2.jpg';
-				path3 = 'textures/wood3.jpg';
-				path4 = 'textures/wood4.jpg';
-
-			} else if (meshName === 'Cube002_1' || meshName === 'Cube002_2') { // Tuong da
-
+			if (meshName === 'Floor') { // Sofa
+				path1 = 'textures/floor-1.jpg';
+				path2 = 'textures/floor-2.jpg';
+				path3 = 'textures/floor-3.jpg';
+			} else if (meshName === 'kitchen') { // Goi
+				path1 = 'textures/marble-1.jpg';
+				path2 = 'textures/marble-2.jpg';
+				path3 = 'textures/marble-3.jpg';
+			}
+			if (meshName === 'Floor' || meshName === 'kitchen') {
+				if (!mtObj1.material.map.source.data['src'].includes(path1)) {
+					map1 = textureLoader.load(path1);
+					map2 = textureLoader.load(path2);
+					map3 = textureLoader.load(path3);
+					//map4 = textureLoader.load(path4);
+					mtObj1.material = new THREE.MeshBasicMaterial({ map: map1 });
+					mtObj2.material = new THREE.MeshBasicMaterial({ map: map2 });
+					mtObj3.material = new THREE.MeshBasicMaterial({ map: map3 });
+					//mtObj4.material = new THREE.MeshBasicMaterial({ map: map4 });
+				}
 			}
 
-			if (!mtObj1.material.map.source.data['src'].includes(path1)) {
-				map1 = textureLoader.load(path1);
-				map2 = textureLoader.load(path2);
-				map3 = textureLoader.load(path3);
-				map4 = textureLoader.load(path4);
-				mtObj1.material = new THREE.MeshBasicMaterial({ map: map1 });
-				mtObj2.material = new THREE.MeshBasicMaterial({ map: map2 });
-				mtObj3.material = new THREE.MeshBasicMaterial({ map: map3 });
-				mtObj4.material = new THREE.MeshBasicMaterial({ map: map4 });
-			}
 
 		}
 
@@ -270,11 +231,6 @@
 
 			camera.aspect = width / height;
 			camera.updateProjectionMatrix();
-
-			//cameraOrtho.left = - width / 2;
-			//cameraOrtho.right = width / 2;
-			//cameraOrtho.top = height / 2;
-			//cameraOrtho.bottom = - height / 2;
 
 			cameraOrtho.aspect = width / height;
 			cameraOrtho.updateProjectionMatrix();
@@ -417,7 +373,7 @@
 			mtObj1.rotation.y += 0.01;
 			mtObj2.rotation.y += 0.01;
 			mtObj3.rotation.y += 0.01;
-			mtObj4.rotation.y += 0.01;
+			//mtObj4.rotation.y += 0.01;
 
 		}
 

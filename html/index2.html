@@ -71,7 +71,7 @@
             //camera.position.z = 1500;
             camera = new THREE.PerspectiveCamera(40, width / height, 1, 100);
             //camera.position.set( 5, 2, 8 );
-            camera.position.z = 6;
+            //camera.position.z = 6;
             console.log(camera.position);
             //cameraOrtho = new THREE.OrthographicCamera(- width / 2, width / 2, height / 2, - height / 2, 1, 10);
             cameraOrtho = new THREE.PerspectiveCamera(40, width / height, 1, 100)
@@ -89,7 +89,7 @@
 
             // Load room 3d
             const loader = new GLTFLoader();
-            loader.load('models/gltf/coffee.glb', function (gltf) {
+            loader.load('models/gltf/roomModel.glb', function (gltf) {
                 const model = gltf.scene;
                 // model.traverse((o) => {
                 // 	if (o.isMesh) {
@@ -97,9 +97,9 @@
                 // 		o.castShadow = true;
                 // 	}
                 // });
-                model.rotation.set(0.1, -2, 0);
-                const modelSize = 0.5;
-                model.scale.set(modelSize, modelSize, modelSize);
+                //model.rotation.set(0.1, -2, 0);
+                //const modelSize = 0.5;
+                //model.scale.set(modelSize, modelSize, modelSize);
                 scene.add(model);
                 //animate();
 
