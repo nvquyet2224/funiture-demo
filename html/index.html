@@ -181,47 +181,36 @@
 			mtObj3.position.set(0.25, -0.5, 0);
 			sceneOrtho.add(mtObj3);
 
-			//mtObj4 = new THREE.Mesh(geometry, material4);
-			//mtObj4.position.set(-0.45, -0.5, 0);
-			//sceneOrtho.add(mtObj4);
-
-			UpdateMaterialMesh();
 		}
 
 		function updateMaterialMesh(meshName) {
-			console.log(meshName);
 			let path1, path2, path3, path4;
 			let map1, map2, map3, map4;
 			const textureLoader = new THREE.TextureLoader();
+
 			if (meshName === 'Floor') { // Sofa
 				path1 = 'textures/floor-1.jpg';
 				path2 = 'textures/floor-2.jpg';
 				path3 = 'textures/floor-3.jpg';
-			} else if (meshName === 'kitchen') { // Goi
+			} else if (meshName === 'walls2') { // Goi
 				path1 = 'textures/marble-1.jpg';
 				path2 = 'textures/marble-2.jpg';
 				path3 = 'textures/marble-3.jpg';
 			}
-			if (meshName === 'Floor' || meshName === 'kitchen') {
+
+			if (meshName === 'Floor' || meshName === 'walls2') {
 				if (!mtObj1.material.map.source.data['src'].includes(path1)) {
 					map1 = textureLoader.load(path1);
 					map2 = textureLoader.load(path2);
 					map3 = textureLoader.load(path3);
-					//map4 = textureLoader.load(path4);
+
 					mtObj1.material = new THREE.MeshBasicMaterial({ map: map1 });
 					mtObj2.material = new THREE.MeshBasicMaterial({ map: map2 });
 					mtObj3.material = new THREE.MeshBasicMaterial({ map: map3 });
-					//mtObj4.material = new THREE.MeshBasicMaterial({ map: map4 });
 				}
 			}
 
 
-		}
-
-		function UpdateMaterialMesh() {
-			//const width = window.innerWidth / 2;
-			//const height = window.innerHeight / 2;
-			//materialBL.position.set(-width, -height, 1);
 		}
 
 		function onWindowResize() {
@@ -235,8 +224,6 @@
 			cameraOrtho.aspect = width / height;
 			cameraOrtho.updateProjectionMatrix();
 
-			//updateHUDSprites();
-			UpdateMaterialMesh();
 
 			renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -260,12 +247,14 @@
 			const intersects = raycaster.intersectObject(scene, true);
 			if (intersects.length > 0) {
 				const selectedObject = intersects[0].object;
-				addSelectedObject(selectedObject);
-				outlinePass.selectedObjects = selectedObjects;
-				//document.body.style.cursor = "pointer";
+				if(selectedObject?.name === 'walls2' || selectedObject?.name === 'Floor') {
+					addSelectedObject(selectedObject);
+					outlinePass.selectedObjects = selectedObjects;
+				} else {
+					outlinePass.selectedObjects = [];
+				}
 			} else {
 				outlinePass.selectedObjects = [];
-				//document.body.style.cursor = "default";
 			}
 		}
 
@@ -276,10 +265,8 @@
 				const selectedObject = intersects[0].object;
 				addSelectedObject(selectedObject);
 				outlinePassO.selectedObjects = selectedObjects;
-				document.body.style.cursor = "pointer";
 			} else {
 				outlinePassO.selectedObjects = [];
-				document.body.style.cursor = "default";
 			}
 
 		}
@@ -335,8 +322,10 @@
 
 				// Update material
 				if (meshSelected) {
-					const textture = object.material.map;
-					meshSelected.material = new THREE.MeshBasicMaterial({ map: textture });
+					if(meshSelected.name === 'walls2' || meshSelected.name === 'Floor') {
+						const textture = object.material.map;
+						meshSelected.material = new THREE.MeshBasicMaterial({ map: textture });
+					}
 				}
 
 			} else {
